@@ -142,11 +142,13 @@ Write out what a full user interaction looks like from start to finish — tool 
 **Step 1:**
 <!-- What does the agent do first? Which tool is called? With what input? -->
 
+     The agent would use "search_listings", checking for a "vintage graphic tee" with max price "30", and return the results. If there are no results, it offers the user a separate suggestion off the data and stops.
 **Step 2:**
 <!-- What happens next? What was returned from step 1? What tool is called now? -->
-
+     The returned listing from step 1 would then be processed and put into the tool "suggest_outfit", where for each match listing from step 1, the listing would be processed into the wardrobe to see if there are any matches.
 **Step 3:**
 <!-- Continue until the full interaction is complete -->
-
+     Once the suggested oufit returns, we use the tool "create_fit_card" to piece together the listing from step 1 and the suggested outfit from the wardrobe in step 2.
 **Final output to user:**
 <!-- What does the user actually see at the end? -->
+     The user at the end sees the complete "fit card", matching the listing suggested from step 1 and the outfit from step 2.
