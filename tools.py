@@ -152,9 +152,10 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Before writing code, fill in the Tool 2 section of planning.md.
     """
     # Describe the thrifted item so the LLM has something concrete to style.
-    item_desc = _format_item(new_item)
+    # Guard against None inputs so we never crash on missing data.
+    item_desc = _format_item(new_item or {})
 
-    items = wardrobe.get("items") or []
+    items = (wardrobe or {}).get("items") or []
 
     if not items:
         # No wardrobe yet — offer general styling advice for the item alone.
@@ -248,17 +249,17 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
 
     Before writing code, fill in the Tool 3 section of planning.md.
     """
-    item = new_item or {}
-    name = item.get("title") or item.get("name")
-    has_outfit = bool(outfit and outfit.strip())
-
-    # Both inputs missing — nothing to work with.
-    if not has_outfit and not name:
+    # Guard against an empty or whitespace-only outfit string. Without an
+    # outfit there's nothing to caption, so return a descriptive error message
+    # instead of crashing or calling the LLM.
+    if not outfit or not outfit.strip():
         return (
-            "Can't write a fit card: no outfit suggestion and no item details "
-            "were provided."
+            "Can't write a fit card: no outfit suggestion was provided. "
+            "Run suggest_outfit first and pass its result in as `outfit`."
         )
 
+    item = new_item or {}
+    name = item.get("title") or item.get("name")
     price = item.get("price")
     platform = item.get("platform")
 
@@ -276,37 +277,20 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     tags = item.get("style_tags")
     if tags:
         detail_lines.append(f"Style tags: {', '.join(tags)}")
-    item_details = "\n".join(detail_lines)
+    item_details = "\n".join(detail_lines) or "(no item details provided)"
 
-    if has_outfit:
-        # Happy path — caption built from the outfit and the item.
-        prompt = (
-            "Write a short, shareable Instagram/TikTok caption (2-4 sentences) "
-            "for a thrifted fashion find someone just scored.\n\n"
-            f"Item details:\n{item_details}\n\n"
-            f"The outfit they're styling it into:\n{outfit.strip()}\n\n"
-            "Guidelines:\n"
-            "- Sound casual and authentic, like a real OOTD post — NOT a product "
-            "description.\n"
-            "- Naturally mention the item's name, price, and platform once each.\n"
-            "- Capture the outfit's vibe in specific terms.\n"
-            "- Just return the caption text, no quotes or extra commentary."
-        )
-    else:
-        # Outfit missing but we have item details — caption the find alone.
-        prompt = (
-            "Write a short, shareable Instagram/TikTok caption (2-4 sentences) "
-            "for a thrifted fashion find someone just scored. There's no styled "
-            "outfit yet, so focus on the piece itself and the excitement of the "
-            "find.\n\n"
-            f"Item details:\n{item_details}\n\n"
-            "Guidelines:\n"
-            "- Sound casual and authentic, like a real OOTD/haul post — NOT a "
-            "product description.\n"
-            "- Naturally mention the item's name, price, and platform once each "
-            "(if available).\n"
-            "- Just return the caption text, no quotes or extra commentary."
-        )
+    prompt = (
+        "Write a short, shareable Instagram/TikTok caption (2-4 sentences) "
+        "for a thrifted fashion find someone just scored.\n\n"
+        f"Item details:\n{item_details}\n\n"
+        f"The outfit they're styling it into:\n{outfit.strip()}\n\n"
+        "Guidelines:\n"
+        "- Sound casual and authentic, like a real OOTD post — NOT a product "
+        "description.\n"
+        "- Naturally mention the item's name, price, and platform once each.\n"
+        "- Capture the outfit's vibe in specific terms.\n"
+        "- Just return the caption text, no quotes or extra commentary."
+    )
 
     # Higher temperature so different inputs (and re-runs) read distinctly.
     return _call_llm(prompt, temperature=0.9)
