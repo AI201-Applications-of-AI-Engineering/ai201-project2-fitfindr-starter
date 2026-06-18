@@ -43,8 +43,66 @@ def handle_query(user_query: str, wardrobe_choice: str) -> tuple[str, str, str]:
            string and return it along with session["outfit_suggestion"] and
            session["fit_card"].
     """
-    # TODO: implement this function
-    return "Agent not yet implemented.", "", ""
+    # 1. Guard against an empty query.
+    if not user_query or not user_query.strip():
+        return ("Please enter what you're looking for.", "", "")
+
+    # 2. Pick the wardrobe based on the radio choice.
+    if wardrobe_choice == "Empty wardrobe (new user)":
+        wardrobe = get_empty_wardrobe()
+    else:
+        wardrobe = get_example_wardrobe()
+
+    # 3. Run the planning loop.
+    session = run_agent(user_query, wardrobe)
+
+    # 4. If the run ended early, show the error in the first panel only.
+    if session["error"]:
+        return (session["error"], "", "")
+
+    # 5. Format the selected listing and return all three panels.
+    listing_text = _format_listing(session["selected_item"])
+    return (
+        listing_text,
+        session["outfit_suggestion"] or "",
+        session["fit_card"] or "",
+    )
+
+
+def _format_listing(item: dict) -> str:
+    """Render the selected listing dict into a readable multi-line summary."""
+    if not item:
+        return "No listing selected."
+
+    lines = [item.get("title", "Untitled listing")]
+
+    price = item.get("price")
+    if price is not None:
+        lines.append(f"${price}")
+
+    for label, key in (
+        ("Brand", "brand"),
+        ("Size", "size"),
+        ("Condition", "condition"),
+        ("Platform", "platform"),
+    ):
+        value = item.get(key)
+        if value:
+            lines.append(f"{label}: {value}")
+
+    colors = item.get("colors")
+    if colors:
+        lines.append(f"Colors: {', '.join(colors)}")
+
+    tags = item.get("style_tags")
+    if tags:
+        lines.append(f"Style: {', '.join(tags)}")
+
+    description = item.get("description")
+    if description:
+        lines.append(f"\n{description}")
+
+    return "\n".join(lines)
 
 
 # ── interface ─────────────────────────────────────────────────────────────────

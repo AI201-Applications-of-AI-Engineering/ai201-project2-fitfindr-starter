@@ -1,0 +1,59 @@
+======================================================================
+STATE-PASSING VERIFICATION
+======================================================================
+
+Query:
+  I'm looking for a vintage graphic tee under $30. I mostly wear baggy jeans and chunky sneakers. What's out there and how would I style it?
+
+Parsed: {'description': "I'm looking for a vintage graphic tee under $30. I mostly wear baggy jeans and chunky sneakers. What's out there and how would I style it?", 'size': 'M', 'max_price': 30.0}
+Error:  None
+
+----------------------------------------------------------------------
+CHECK 1: session['selected_item'] -> suggest_outfit(new_item)
+----------------------------------------------------------------------
+
+session['selected_item']:
+  {'id': 'lst_030', 'title': 'Vintage Knit Vest — Argyle Brown/Cream', 'description': 'Classic argyle knit vest in brown and cream. Fits medium. V-neck. Ideal for the dark academia or preppy vintage aesthetic.', 'category': 'tops', 'style_tags': ['vintage', 'preppy', 'knitwear', 'dark academia', 'earth tones'], 'size': 'M', 'condition': 'good', 'price': 25.0, 'colors': ['brown', 'cream', 'tan'], 'brand': None, 'platform': 'thredUp'}
+
+new_item received by suggest_outfit:
+  {'id': 'lst_030', 'title': 'Vintage Knit Vest — Argyle Brown/Cream', 'description': 'Classic argyle knit vest in brown and cream. Fits medium. V-neck. Ideal for the dark academia or preppy vintage aesthetic.', 'category': 'tops', 'style_tags': ['vintage', 'preppy', 'knitwear', 'dark academia', 'earth tones'], 'size': 'M', 'condition': 'good', 'price': 25.0, 'colors': ['brown', 'cream', 'tan'], 'brand': None, 'platform': 'thredUp'}
+
+Same object passed through? True  (equal values: True)
+
+----------------------------------------------------------------------
+CHECK 2: session['outfit_suggestion'] -> create_fit_card(outfit)
+----------------------------------------------------------------------
+
+session['outfit_suggestion']:
+  I'm excited to help you style that vintage knit vest. Here are two outfit ideas that incorporate pieces from your wardrobe:
+
+**Outfit 1: Preppy Earth Tones**
+Pair the vintage knit vest with the wide-leg khaki trousers, white ribbed tank top, and brown leather belt. This outfit creates a preppy, earthy vibe that's perfect for a casual day out. The vest adds a touch of sophistication, while the trousers and belt keep the look grounded.
+
+**Outfit 2: Dark Academia Chic**
+Combine the vest with the baggy straight-leg jeans, oversized grey crewneck sweatshirt, and black combat boots. This outfit has a dark academia feel, with the vest adding a layer of intellectual charm. The sweatshirt's oversized fit balances out the vest's preppy vibe, while the boots add an edgy touch.
+
+Both outfits showcase the versatility of the vintage knit vest. Feel free to experiment and add your own twists to create a look that's uniquely yours!
+
+outfit received by create_fit_card:
+  I'm excited to help you style that vintage knit vest. Here are two outfit ideas that incorporate pieces from your wardrobe:
+
+**Outfit 1: Preppy Earth Tones**
+Pair the vintage knit vest with the wide-leg khaki trousers, white ribbed tank top, and brown leather belt. This outfit creates a preppy, earthy vibe that's perfect for a casual day out. The vest adds a touch of sophistication, while the trousers and belt keep the look grounded.
+
+**Outfit 2: Dark Academia Chic**
+Combine the vest with the baggy straight-leg jeans, oversized grey crewneck sweatshirt, and black combat boots. This outfit has a dark academia feel, with the vest adding a layer of intellectual charm. The sweatshirt's oversized fit balances out the vest's preppy vibe, while the boots add an edgy touch.
+
+Both outfits showcase the versatility of the vintage knit vest. Feel free to experiment and add your own twists to create a look that's uniquely yours!
+
+Same object passed through? True
+
+----------------------------------------------------------------------
+FINAL FIT CARD
+----------------------------------------------------------------------
+
+Just scored this amazing vintage knit vest in argyle brown and cream for $25.0 on thredUp and I'm obsessed. I've been styling it into two different vibes - a preppy earthy look with wide-leg khaki trousers and a white tank, and a dark academia chic outfit with baggy jeans and an oversized grey sweatshirt. Both ways, the vest adds a touch of sophistication and I'm loving the earthy, intellectual vibes it's giving me.
+
+======================================================================
+RESULT: PASS — state passes correctly
+======================================================================
