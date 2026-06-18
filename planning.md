@@ -27,7 +27,7 @@ This tool searches the listings in listings.json, trying to find any matches for
 
 **What it returns:**
 <!-- Describe the return value — what fields does a result contain? -->
-The results should return a JSON of the listings in listing.json, with the listings sorted by relevance, and returns the top result.
+The results should return a JSON of the listings in listing.json, with the listings sorted by relevance, and returns results sorted by relevance. 
 
 **What happens if it fails or returns nothing:**
 <!-- What should the agent do if no listings match? -->

@@ -24,6 +24,10 @@ load_dotenv()
 
 # ── Groq client ───────────────────────────────────────────────────────────────
 
+# Default Groq-hosted model. Swap here if you want a different one.
+GROQ_MODEL = "llama-3.3-70b-versatile"
+
+
 def _get_groq_client():
     """Initialize and return a Groq client using GROQ_API_KEY from .env."""
     api_key = os.environ.get("GROQ_API_KEY")
@@ -32,6 +36,17 @@ def _get_groq_client():
             "GROQ_API_KEY not set. Add it to a .env file in the project root."
         )
     return Groq(api_key=api_key)
+
+
+def _call_llm(prompt: str, temperature: float = 0.7) -> str:
+    """Send a single user prompt to the LLM and return its text response."""
+    client = _get_groq_client()
+    response = client.chat.completions.create(
+        model=GROQ_MODEL,
+        temperature=temperature,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content.strip()
 
 
 # ── Tool 1: search_listings ───────────────────────────────────────────────────
@@ -69,8 +84,44 @@ def search_listings(
 
     Before writing code, fill in the Tool 1 section of planning.md.
     """
-    # Replace this with your implementation
-    return []
+    listings = load_listings()
+
+    # Break the description into lowercase keywords to score against.
+    keywords = [word for word in description.lower().split() if word]
+
+    scored: list[tuple[int, dict]] = []
+    for listing in listings:
+        # Filter by price ceiling (inclusive), if provided.
+        if max_price is not None and listing["price"] > max_price:
+            continue
+
+        # Filter by size (case-insensitive substring match), if provided.
+        if size is not None:
+            listing_size = (listing.get("size") or "").lower()
+            if size.lower() not in listing_size:
+                continue
+
+        # Score by keyword overlap across the listing's searchable text.
+        haystack = " ".join([
+            listing.get("title", ""),
+            listing.get("description", ""),
+            listing.get("category", ""),
+            listing.get("brand") or "",
+            " ".join(listing.get("style_tags", [])),
+            " ".join(listing.get("colors", [])),
+        ]).lower()
+
+        score = sum(1 for word in keywords if word in haystack)
+
+        # Drop listings with no relevant matches.
+        if score == 0:
+            continue
+
+        scored.append((score, listing))
+
+    # Sort by score, highest first, and return just the listing dicts.
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    return [listing for _, listing in scored]
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
@@ -100,8 +151,72 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
 
     Before writing code, fill in the Tool 2 section of planning.md.
     """
-    # Replace this with your implementation
-    return ""
+    # Describe the thrifted item so the LLM has something concrete to style.
+    item_desc = _format_item(new_item)
+
+    items = wardrobe.get("items") or []
+
+    if not items:
+        # No wardrobe yet — offer general styling advice for the item alone.
+        prompt = (
+            "You are a thoughtful personal stylist for thrifted fashion.\n\n"
+            f"A shopper is considering this second-hand find:\n{item_desc}\n\n"
+            "They have not entered any wardrobe pieces yet, so you can't build a "
+            "specific outfit from what they own. Instead, give friendly general "
+            "styling advice: what kinds of pieces (tops, bottoms, shoes, "
+            "accessories) pair well with it, what vibe or occasions it suits, and "
+            "a couple of concrete example looks they could put together. Keep it "
+            "to a short, encouraging paragraph or two."
+        )
+        return _call_llm(prompt)
+
+    # Populated wardrobe — let the LLM build outfits from named pieces.
+    wardrobe_lines = "\n".join(f"- {_format_item(item)}" for item in items)
+    prompt = (
+        "You are a thoughtful personal stylist for thrifted fashion.\n\n"
+        f"A shopper is considering this second-hand find:\n{item_desc}\n\n"
+        f"Here are the pieces already in their wardrobe:\n{wardrobe_lines}\n\n"
+        "Suggest 1-2 complete outfits that build around the thrifted find, "
+        "naming specific wardrobe pieces from the list above for each outfit. "
+        "For every outfit, briefly explain the style/vibe it creates and how to "
+        "wear it. If none of their pieces pair well with the find, say so "
+        "honestly and offer general styling advice for the item instead. Keep "
+        "the response concise and friendly."
+    )
+    return _call_llm(prompt)
+
+
+def _format_item(item: dict) -> str:
+    """Render a listing or wardrobe item dict into a compact one-line summary."""
+    # Listings use 'title'; wardrobe items use 'name'.
+    name = item.get("title") or item.get("name") or "Unnamed item"
+    parts = [name]
+
+    category = item.get("category")
+    if category:
+        parts.append(f"category: {category}")
+
+    colors = item.get("colors")
+    if colors:
+        parts.append(f"colors: {', '.join(colors)}")
+
+    tags = item.get("style_tags")
+    if tags:
+        parts.append(f"style: {', '.join(tags)}")
+
+    price = item.get("price")
+    if price is not None:
+        parts.append(f"${price}")
+
+    brand = item.get("brand")
+    if brand:
+        parts.append(f"brand: {brand}")
+
+    notes = item.get("notes")
+    if notes:
+        parts.append(f"notes: {notes}")
+
+    return " | ".join(parts)
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
@@ -133,5 +248,65 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
 
     Before writing code, fill in the Tool 3 section of planning.md.
     """
-    # Replace this with your implementation
-    return ""
+    item = new_item or {}
+    name = item.get("title") or item.get("name")
+    has_outfit = bool(outfit and outfit.strip())
+
+    # Both inputs missing — nothing to work with.
+    if not has_outfit and not name:
+        return (
+            "Can't write a fit card: no outfit suggestion and no item details "
+            "were provided."
+        )
+
+    price = item.get("price")
+    platform = item.get("platform")
+
+    # Build the item details block from whatever fields are available.
+    detail_lines = []
+    if name:
+        detail_lines.append(f"Item: {name}")
+    if price is not None:
+        detail_lines.append(f"Price: ${price}")
+    if platform:
+        detail_lines.append(f"Platform: {platform}")
+    colors = item.get("colors")
+    if colors:
+        detail_lines.append(f"Colors: {', '.join(colors)}")
+    tags = item.get("style_tags")
+    if tags:
+        detail_lines.append(f"Style tags: {', '.join(tags)}")
+    item_details = "\n".join(detail_lines)
+
+    if has_outfit:
+        # Happy path — caption built from the outfit and the item.
+        prompt = (
+            "Write a short, shareable Instagram/TikTok caption (2-4 sentences) "
+            "for a thrifted fashion find someone just scored.\n\n"
+            f"Item details:\n{item_details}\n\n"
+            f"The outfit they're styling it into:\n{outfit.strip()}\n\n"
+            "Guidelines:\n"
+            "- Sound casual and authentic, like a real OOTD post — NOT a product "
+            "description.\n"
+            "- Naturally mention the item's name, price, and platform once each.\n"
+            "- Capture the outfit's vibe in specific terms.\n"
+            "- Just return the caption text, no quotes or extra commentary."
+        )
+    else:
+        # Outfit missing but we have item details — caption the find alone.
+        prompt = (
+            "Write a short, shareable Instagram/TikTok caption (2-4 sentences) "
+            "for a thrifted fashion find someone just scored. There's no styled "
+            "outfit yet, so focus on the piece itself and the excitement of the "
+            "find.\n\n"
+            f"Item details:\n{item_details}\n\n"
+            "Guidelines:\n"
+            "- Sound casual and authentic, like a real OOTD/haul post — NOT a "
+            "product description.\n"
+            "- Naturally mention the item's name, price, and platform once each "
+            "(if available).\n"
+            "- Just return the caption text, no quotes or extra commentary."
+        )
+
+    # Higher temperature so different inputs (and re-runs) read distinctly.
+    return _call_llm(prompt, temperature=0.9)
