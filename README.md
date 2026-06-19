@@ -77,25 +77,25 @@ Your README submission must document each tool's name, inputs, and return value.
 **User query:**
 
 **Step 1 — Tool called:**
-- Tool:
-- Input:
-- Why this tool:
-- Output:
+- Tool: searching_listings
+- Input: description: str, size: str | None = None, max_price: float | None = None
+- Why this tool: Needed to search through all the listings, such that we are able to utilize AI to help find one that matches the user's request
+- Output: list[dict], a listing of all matches
 
 **Step 2 — Tool called:**
-- Tool:
-- Input:
-- Why this tool:
-- Output:
+- Tool: suggest_outfit
+- Input: new_item: dict, wardrobe: dict
+- Why this tool: Utilized to help match clothes from the user's wardrobe with the matched listings
+- Output: str
 
 **Step 3 — Tool called:**
-- Tool:
-- Input:
-- Why this tool:
-- Output:
+- Tool: create_fit_card
+- Input: outfit: str, new_item: dict
+- Why this tool: after matching a fit for the user with tool 1 and 2, create a description for the user
+- Output: str
 
 **Final output to user:**
-
+A trendy description of the fit with the user's requested listing, alongside their clothes from their wardrobe.
 ---
 
 ## Error Handling and Fail Points
@@ -105,9 +105,9 @@ Your README submission must document each tool's name, inputs, and return value.
 
 | Tool | Failure mode | Agent response |
 |------|-------------|----------------|
-| `search_listings` | | |
-| `suggest_outfit` | | |
-| `create_fit_card` | | |
+| `search_listings` | there is no match for the user's description | returns an empty list |
+| `suggest_outfit` | wardrobe is empty | offer general styling advice for the item |
+| `create_fit_card` | outfit is empty/missing | return a descriptive error message string |
 
 ---
 
@@ -117,9 +117,17 @@ Your README submission must document each tool's name, inputs, and return value.
 
 **One way planning.md helped during implementation:**
 
+planning.md helped me plan all the layouts before I started coding. When I was confused and didn't know where to go, planning.md gave the steps on what to do and what to focus on. Furthermore, it helped break downt the steps as well, making sure that everything followed a guideline to address edge cases.
+
 **One divergence from your spec, and why:**
+I utilized Gemini to help me produce my architecture, feeding it tools and cases that are used within the app. Though the plan is kind of plan and not as descriptive as planning.md, it gives a framework for what the program will do.
 
 ---
+
+
+## AI Usage
+
+During the project, I utilized Claude to help analyze my answers to prompts in planning.md to make sure that I was approaching the prompts properly. Once I got it approved properly, I used Gemini to help me draw out the architecture, making sure that each part of it was done properly. If it was missing some datapoints or missed an edge case, I prompted it to fix the chart. After planning.md was fixed, I utilized Claude to help compare my answer to the instruction set. If they were similar, I was then set to ask it to help me generate the proper code, and once it was generated, I made sure that the code looked right and followed through with some testing. To make sure the code wasn't missing anything, I utilized Claude again to generate test cases, and paste the results in another file. I rinse and repeated this for all the tools, and eventually was able to finish this project, hopefully in the way that it was meant to be done.
 
 ## Where to Start
 
